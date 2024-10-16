@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+</head>
+<body>
+    <h1>Users</h1>
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Add User</h2>
+    <form id="userForm">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <button type="submit">Add User</button>
+    </form> 
+
+    <script>
+        async function fetchUsers() {
+            try {
+                const response = await fetch('http://localhost:3000/users');
+                const data = await response.json();
+                const tbody = document.querySelector('tbody');
+                tbody.innerHTML = '';
+                data.forEach(user => {
+                    tbody.innerHTML += `
+                        <tr id="user-${user.id}">
+                            <td contenteditable="false" id="name-${user.id}">${user.name}</td>
+                            <td contenteditable="false" id="email-${user.id}">${user.email}</td>
+                            <td>
+                                <button onclick="editUser(${user.id})">Edit</button>
+                                <button onclick="deleteUser(${user.id})">Delete</button>
+                                <button onclick="saveUser(${user.id})" style="display:none">Save</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                alert('Failed to fetch users');
+                console.error(error);
+            }
+        }
+
+        async function addUser(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email })
+                });
+                fetchUsers();
+                document.getElementById('userForm').reset();
+            } catch (error) {
+                alert('Failed to add user');
+                console.error(error);
+            }
+        }
+
+        async function editUser(id) {
+            const nameCell = document.getElementById(`name-${id}`);
+            const emailCell = document.getElementById(`email-${id}`);
+            const saveButton = document.querySelector(`#user-${id} button:last-of-type`);
+
+            nameCell.contentEditable = true;
+            emailCell.contentEditable = true;
+            saveButton.style.display = 'inline';
+        }
+
+        async function saveUser(id) {
+            const name = document.getElementById(`name-${id}`).innerText;
+            const email = document.getElementById(`email-${id}`).innerText;
+
+            try {
+                const response = await fetch(`http://localhost:3000/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+                fetchUsers();
+            } catch (error) {
+                alert('Failed to update user');
+                console.error(error);
+            }
+        }
+
+        async function deleteUser(id) {
+            try {
+                const response = await fetch(`http://localhost:3000/users/${id}`, {
+                    method: 'DELETE'
+                });
+                fetchUsers();
+            } catch (error) {
+                alert('Failed to delete user');
+                console.error(error);
+            }
+        }
+
+        document.getElementById('userForm').addEventListener('submit', addUser);
+        fetchUsers();
+    </script>
+</body>
+</html>
